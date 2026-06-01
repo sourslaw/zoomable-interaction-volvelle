@@ -1,18 +1,13 @@
-import '@annotorious/react/annotorious-react.css';
-
-import {
-  Annotorious,
-  OpenSeadragonAnnotator,
-  OpenSeadragonViewer
-} from '@annotorious/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import OpenSeadragon from 'openseadragon';
 import flapImage from './front_flapper.jpg';
 
 function OpenSeadragonDemo() {
   // Flip animation state
   const [flipAngle, setFlipAngle] = useState(0);
   const viewerRef = useRef(null);
+  const viewerElementRef = useRef(null);
   const flapOverlayRef = useRef(null);
   const flapElementRef = useRef(null);
   const viewerWrapperRef = useRef(null);
@@ -149,10 +144,7 @@ function OpenSeadragonDemo() {
 
   // Update overlays when flap configuration changes
   useEffect(() => {
-    console.log('useEffect triggered, flapRegion:', flapRegion);
-    
     if (!viewerRef.current) {
-      console.log('No viewer reference');
       return;
     }
 
@@ -167,149 +159,100 @@ function OpenSeadragonDemo() {
     const fadeInWidth = fadeInRegion.width / CANVAS_W;
     const fadeInHeight = fadeInRegion.height / CANVAS_H;
 
-    console.log('Updating overlays to:', { overlayX, overlayY, overlayWidth, overlayHeight });
-
     // Update background overlay
     const bgOverlay = viewer.getOverlayById('background-overlay');
-    console.log('Background overlay found:', !!bgOverlay);
     if (bgOverlay) {
       viewer.updateOverlay('background-overlay', 
         new window.OpenSeadragon.Rect(overlayX, overlayY, overlayWidth, overlayHeight)
       );
-      console.log('Background overlay updated');
     }
 
     // Update fade-in overlay (positioned to the left)
     const fadeInOverlay = viewer.getOverlayById('fade-in-overlay');
-    console.log('Fade-in overlay found:', !!fadeInOverlay);
     if (fadeInOverlay) {
       viewer.updateOverlay('fade-in-overlay', 
         new window.OpenSeadragon.Rect(fadeInX, fadeInY, fadeInWidth, fadeInHeight)
       );
-      console.log('Fade-in overlay updated');
     }
 
     // Update flap overlay
     const flapOverlay = viewer.getOverlayById('flap-overlay');
-    console.log('Flap overlay found:', !!flapOverlay);
     if (flapOverlay) {
       viewer.updateOverlay('flap-overlay', 
         new window.OpenSeadragon.Rect(overlayX, overlayY, overlayWidth, overlayHeight)
       );
-      console.log('Flap overlay updated');
     }
   }, [flapRegion, fadeInRegion, CANVAS_W, CANVAS_H]);
 
-  // Setup viewer
-  const handleViewerReady = useCallback((viewer) => {
-    if (!viewer || viewerRef.current) return;
+  // Initialize OpenSeadragon viewer
+  useEffect(() => {
+    if (!viewerElementRef.current || viewerRef.current) return;
     
-    viewerRef.current = viewer;
-    console.log('Viewer ready');
-    console.log('Transform origin:', `${originX}% ${originY}%`);
-  }, [originX, originY]);
-
-  // IMPORTANT! Memo-ize your options to avoid
-  // unexpected re-renders of the OSD viewer.
-  const options = useMemo(() => {
-    // Use initial configuration for overlay setup
-    const initialRegion = {
-      x: initialConfig.circle.cx - initialConfig.circle.r,
-      y: initialConfig.circle.cy - initialConfig.circle.r,
-      width: initialConfig.circle.r * 2,
-      height: initialConfig.circle.r * 2
-    };
-    
-    const overlayX = initialRegion.x / CANVAS_W;
-    const overlayY = initialRegion.y / CANVAS_H;
-    const overlayWidth = initialRegion.width / CANVAS_W;
-    const overlayHeight = initialRegion.height / CANVAS_H;
-
-    // Calculate fade-in overlay position (offset to the left)
-    const fadeInX = (initialRegion.x + initialRegion.width * FADE_IN_OFFSET_X) / CANVAS_W;
-    const fadeInY = (initialRegion.y + initialRegion.height * FADE_IN_OFFSET_Y) / CANVAS_H;
-
-    return {
-      // Using a IIIF image from Yale Library with tiled pyramid for better performance
+    const viewer = OpenSeadragon({
+      element: viewerElementRef.current,
       tileSources: 'https://collections.library.yale.edu/iiif/2/16595950/info.json',
-      // Optional: configure viewer settings
-      showNavigator: true,
+      showNavigator: false,
       showRotationControl: true,
       gestureSettingsMouse: {
         clickToZoom: false
       },
-      // Viewport settings for proper initial display
       defaultZoomLevel: 0,
       minZoomLevel: 0.5,
       maxZoomLevel: 10,
       visibilityRatio: 0.8,
       constrainDuringPan: false,
       homeFillsViewer: false,
-      // Use CDN for control images to avoid 404 errors
       prefixUrl: 'https://cdn.jsdelivr.net/npm/openseadragon@4.1/build/openseadragon/images/',
-      // Add overlays: background first (below), then fade-in, then flap (on top)
       overlays: [
         {
           id: 'background-overlay',
-          x: overlayX,
-          y: overlayY,
-          width: overlayWidth,
-          height: overlayHeight,
-          rotationMode: window.OpenSeadragon?.OverlayRotationMode?.EXACT || 0
+          element: document.getElementById('background-overlay'),
+          location: new OpenSeadragon.Rect(
+            (initialConfig.circle.cx - initialConfig.circle.r) / CANVAS_W,
+            (initialConfig.circle.cy - initialConfig.circle.r) / CANVAS_H,
+            (initialConfig.circle.r * 2) / CANVAS_W,
+            (initialConfig.circle.r * 2) / CANVAS_H
+          ),
+          rotationMode: OpenSeadragon.OverlayRotationMode.EXACT
         },
         {
           id: 'fade-in-overlay',
-          x: fadeInX,
-          y: fadeInY,
-          width: overlayWidth,
-          height: overlayHeight,
-          rotationMode: window.OpenSeadragon?.OverlayRotationMode?.EXACT || 0
+          element: document.getElementById('fade-in-overlay'),
+          location: new OpenSeadragon.Rect(
+            (initialConfig.circle.cx - initialConfig.circle.r + initialConfig.circle.r * 2 * FADE_IN_OFFSET_X) / CANVAS_W,
+            (initialConfig.circle.cy - initialConfig.circle.r + initialConfig.circle.r * 2 * FADE_IN_OFFSET_Y) / CANVAS_H,
+            (initialConfig.circle.r * 2) / CANVAS_W,
+            (initialConfig.circle.r * 2) / CANVAS_H
+          ),
+          rotationMode: OpenSeadragon.OverlayRotationMode.EXACT
         },
         {
           id: 'flap-overlay',
-          x: overlayX,
-          y: overlayY,
-          width: overlayWidth,
-          height: overlayHeight,
-          rotationMode: window.OpenSeadragon?.OverlayRotationMode?.EXACT || 0
+          element: document.getElementById('flap-overlay'),
+          location: new OpenSeadragon.Rect(
+            (initialConfig.circle.cx - initialConfig.circle.r) / CANVAS_W,
+            (initialConfig.circle.cy - initialConfig.circle.r) / CANVAS_H,
+            (initialConfig.circle.r * 2) / CANVAS_W,
+            (initialConfig.circle.r * 2) / CANVAS_H
+          ),
+          rotationMode: OpenSeadragon.OverlayRotationMode.EXACT
         }
       ]
-    };
-  }, [CANVAS_W, CANVAS_H]);
-
-  // Pre-existing annotation from IIIF region
-  const initialAnnotations = useMemo(() => [{
-    "@context": "http://www.w3.org/ns/anno.jsonld",
-    "id": "#yale-annotation-1",
-    "type": "Annotation",
-    "body": [],
-    "target": {
-      "selector": {
-        "type": "FragmentSelector",
-        "conformsTo": "http://www.w3.org/TR/media-frags/",
-        "value": "xywh=pixel:642,1551,1722,1722"
+    });
+    
+    viewerRef.current = viewer;
+    
+    viewer.addHandler('open', () => {
+      viewer.viewport.goHome(true);
+    });
+    
+    return () => {
+      if (viewerRef.current) {
+        viewerRef.current.destroy();
+        viewerRef.current = null;
       }
-    }
-  }], []);
-
-  const customStyle = (annotation, state = {}) => ({
-    fill: state.hovered ? '#00ff00' : '#0066ff',
-    fillOpacity: 0.25,
-    stroke: state.selected ? '#ff0000' : '#0066ff',
-    strokeWidth: 2
-  });
-
-  const handleCreateAnnotation = (annotation) => {
-    console.log('OpenSeadragon annotation created:', annotation);
-  };
-
-  const handleUpdateAnnotation = (annotation, previous) => {
-    console.log('OpenSeadragon annotation updated:', annotation);
-  };
-
-  const handleDeleteAnnotation = (annotation) => {
-    console.log('OpenSeadragon annotation deleted:', annotation);
-  };
+    };
+  }, [originX, originY, CANVAS_W, CANVAS_H, FADE_IN_OFFSET_X, FADE_IN_OFFSET_Y]);
 
   return (
     <div className="openseadragon-demo">
@@ -428,27 +371,14 @@ function OpenSeadragonDemo() {
             tabIndex={0}
             aria-label="OpenSeadragon viewer - focus to enable keyboard nudging"
           >
-            <Annotorious>
-              <OpenSeadragonAnnotator
-                annotations={initialAnnotations}
-                style={customStyle}
-                drawingEnabled={true}
-                onCreateAnnotation={handleCreateAnnotation}
-                onUpdateAnnotation={handleUpdateAnnotation}
-                onDeleteAnnotation={handleDeleteAnnotation}
-              >
-                <OpenSeadragonViewer 
-                  className="openseadragon-viewer"
-                  options={options}
-                  ref={(el) => {
-                    if (el && el.viewer) {
-                      console.log('Viewer ref callback fired');
-                      handleViewerReady(el.viewer);
-                    }
-                  }}
-                />
-              </OpenSeadragonAnnotator>
-            </Annotorious>
+            <div 
+              ref={viewerElementRef}
+              className="openseadragon-viewer"
+              style={{
+                width: '100%',
+                height: '100%'
+              }}
+            />
           </div>
 
           <div className="flip-controls">
@@ -476,21 +406,7 @@ function OpenSeadragonDemo() {
         </div>
 
         <div className="instructions">
-          <h3>How to use:</h3>
-          <ul>
-            <li><strong>Zoom & Pan:</strong> Use mouse wheel or controls to zoom; click and drag to pan</li>
-            <li><strong>Flip Animation:</strong> Use the slider to rotate the circular flap from closed (0°) to open (180°)</li>
-            <li><strong>Fade-in Effect:</strong> As the angle increases beyond 90°, a new image fades in gradually until fully visible at 180°</li>
-            <li><strong>Nudge Flap Position:</strong> Use arrow buttons in the "Nudge Position" panel, or focus the viewer and use keyboard arrow keys (hold Shift for ×10)</li>
-            <li><strong>Revealing Effect:</strong> As the flap rotates away, it reveals a background image underneath</li>
-            <li><strong>Annotations:</strong> Click and drag on the image to create rectangular annotations</li>
-            <li><strong>Flap Overlay:</strong> Both the flap and background automatically zoom and pan with the image</li>
-            <li>Hover over annotations to see them highlighted in green</li>
-            <li>Selected annotations appear with a red border</li>
-          </ul>
-          <p className="info-note">
-            <strong>IIIF Images:</strong> This demo uses high-resolution images from Yale University Library. The flap rotates to reveal a background image underneath, with both overlays automatically zooming and panning with the main image.
-          </p>
+          <strong>IIIF Images:</strong> This demo uses high-resolution images from Yale University Library. The flap rotates to reveal a background image underneath, with both overlays automatically zooming and panning with the main image.
         </div>
       </div>
     </div>
