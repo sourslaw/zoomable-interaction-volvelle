@@ -405,9 +405,9 @@ function OpenSeadragonDemo() {
           </div>
         </div>
 
-        <div className="instructions">
+        {/* <div className="instructions">
           <strong>IIIF Images:</strong> This demo uses high-resolution images from Yale University Library. The flap rotates to reveal a background image underneath, with both overlays automatically zooming and panning with the main image.
-        </div>
+        </div> */}
       </div>
     </div>
   );
