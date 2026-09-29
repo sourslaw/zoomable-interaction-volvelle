@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import OpenSeadragon from 'openseadragon';
-import flapImage from './front_flapper.jpg';
+import flapImage from './front_disc.jpg';
 
 function OpenSeadragonDemo() {
   // Flip animation state
@@ -11,23 +11,17 @@ function OpenSeadragonDemo() {
   const flapOverlayRef = useRef(null);
   const flapElementRef = useRef(null);
   const viewerWrapperRef = useRef(null);
-  const fadeInElementRef = useRef(null);
 
   // Canvas dimensions (Yale image dimensions)
   const CANVAS_W = 4696;
   const CANVAS_H = 4752;
 
-  // Fade-in image position offset (adjust this to move the fade-in image)
-  // Negative = left, Positive = right, in multiples of flap width
-  const FADE_IN_OFFSET_X = -.8; // -1.5 = 1.5x flap width to the left
-  const FADE_IN_OFFSET_Y = .0275;    // 0 = same vertical position as flap
-
   // Initial flap configuration from manifest
   const initialConfig = {
     circle: {
-      cx: 2891.9867679067324,
-      cy: 2351.4801195622176,
-      r: 861.1776812027447
+      cx: 1921.9867679067324,
+      cy: 2561.4801195622176,
+      r: 901.1776812027447
     },
     hinge: {
       p1: { x: 2198.918066611849, y: 1927.2436391397318 },
@@ -51,30 +45,13 @@ function OpenSeadragonDemo() {
     height: flapConfig.circle.r * 2
   }), [flapConfig.circle.cx, flapConfig.circle.cy, flapConfig.circle.r]);
 
-  // Calculate fade-in region (offset to the left where opened flap would be)
-  const fadeInRegion = useMemo(() => ({
-    x: flapRegion.x + flapRegion.width * FADE_IN_OFFSET_X,
-    y: flapRegion.y + flapRegion.height * FADE_IN_OFFSET_Y,
-    width: flapRegion.width,
-    height: flapRegion.height
-  }), [flapRegion]);
-
   // IIIF Image URLs
   const backgroundImageUrl = 'https://collections.library.yale.edu/iiif/2/16595951/2031,1490,1722,1722/full/0/default.jpg'; // Revealed when flap opens
   const flapImageUrl = flapImage; // The flap itself
-  const fadeInImageUrl = 'https://collections.library.yale.edu/iiif/2/16595951/642,1551,1722,1722/full/0/default.jpg'; // Fades in after 90 degrees
 
-  // Calculate opacity for fade-in image (0 at 90°, 1 at 180°)
-  const fadeInOpacity = useMemo(() => {
-    if (flipAngle <= 90) return 0;
-    return (flipAngle - 90) / 90;
-  }, [flipAngle]);
-
-  // Calculate transform origin from hinge points
-  const hingeX = (flapConfig.hinge.p1.x + flapConfig.hinge.p2.x) / 2;
-  const hingeY = (flapConfig.hinge.p1.y + flapConfig.hinge.p2.y) / 2;
-  const originX = ((hingeX - flapRegion.x) / flapRegion.width) * 100;
-  const originY = ((hingeY - flapRegion.y) / flapRegion.height) * 100;
+  // Calculate transform origin from disc center
+  const originX = ((flapConfig.circle.cx - flapRegion.x) / flapRegion.width) * 100;
+  const originY = ((flapConfig.circle.cy - flapRegion.y) / flapRegion.height) * 100;
 
   // Keyboard nudging for flap position
   useEffect(() => {
@@ -154,24 +131,11 @@ function OpenSeadragonDemo() {
     const overlayWidth = flapRegion.width / CANVAS_W;
     const overlayHeight = flapRegion.height / CANVAS_H;
 
-    const fadeInX = fadeInRegion.x / CANVAS_W;
-    const fadeInY = fadeInRegion.y / CANVAS_H;
-    const fadeInWidth = fadeInRegion.width / CANVAS_W;
-    const fadeInHeight = fadeInRegion.height / CANVAS_H;
-
     // Update background overlay
     const bgOverlay = viewer.getOverlayById('background-overlay');
     if (bgOverlay) {
       viewer.updateOverlay('background-overlay', 
         new window.OpenSeadragon.Rect(overlayX, overlayY, overlayWidth, overlayHeight)
-      );
-    }
-
-    // Update fade-in overlay (positioned to the left)
-    const fadeInOverlay = viewer.getOverlayById('fade-in-overlay');
-    if (fadeInOverlay) {
-      viewer.updateOverlay('fade-in-overlay', 
-        new window.OpenSeadragon.Rect(fadeInX, fadeInY, fadeInWidth, fadeInHeight)
       );
     }
 
@@ -182,7 +146,7 @@ function OpenSeadragonDemo() {
         new window.OpenSeadragon.Rect(overlayX, overlayY, overlayWidth, overlayHeight)
       );
     }
-  }, [flapRegion, fadeInRegion, CANVAS_W, CANVAS_H]);
+  }, [flapRegion, CANVAS_W, CANVAS_H]);
 
   // Initialize OpenSeadragon viewer
   useEffect(() => {
@@ -190,7 +154,10 @@ function OpenSeadragonDemo() {
     
     const viewer = OpenSeadragon({
       element: viewerElementRef.current,
-      tileSources: 'https://collections.library.yale.edu/iiif/2/16595950/info.json',
+      tileSources: {
+        type: 'image',
+        url: '/image.jpg'
+      },
       showNavigator: false,
       showRotationControl: true,
       gestureSettingsMouse: {
@@ -210,17 +177,6 @@ function OpenSeadragonDemo() {
           location: new OpenSeadragon.Rect(
             (initialConfig.circle.cx - initialConfig.circle.r) / CANVAS_W,
             (initialConfig.circle.cy - initialConfig.circle.r) / CANVAS_H,
-            (initialConfig.circle.r * 2) / CANVAS_W,
-            (initialConfig.circle.r * 2) / CANVAS_H
-          ),
-          rotationMode: OpenSeadragon.OverlayRotationMode.EXACT
-        },
-        {
-          id: 'fade-in-overlay',
-          element: document.getElementById('fade-in-overlay'),
-          location: new OpenSeadragon.Rect(
-            (initialConfig.circle.cx - initialConfig.circle.r + initialConfig.circle.r * 2 * FADE_IN_OFFSET_X) / CANVAS_W,
-            (initialConfig.circle.cy - initialConfig.circle.r + initialConfig.circle.r * 2 * FADE_IN_OFFSET_Y) / CANVAS_H,
             (initialConfig.circle.r * 2) / CANVAS_W,
             (initialConfig.circle.r * 2) / CANVAS_H
           ),
@@ -252,7 +208,7 @@ function OpenSeadragonDemo() {
         viewerRef.current = null;
       }
     };
-  }, [originX, originY, CANVAS_W, CANVAS_H, FADE_IN_OFFSET_X, FADE_IN_OFFSET_Y]);
+  }, [originX, originY, CANVAS_W, CANVAS_H]);
 
   return (
     <div className="openseadragon-demo">
@@ -270,33 +226,6 @@ function OpenSeadragonDemo() {
         <img 
           src={backgroundImageUrl}
           alt="Background (revealed when open)"
-          crossOrigin="anonymous"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            clipPath: 'circle(50% at 50% 50%)'
-          }}
-        />
-      </div>
-
-      {/* Fade-in overlay element - appears when angle exceeds 90° */}
-      <div 
-        id="fade-in-overlay"
-        ref={fadeInElementRef}
-        style={{ 
-          display: 'none',
-          width: '100%',
-          height: '100%',
-          position: 'relative',
-          pointerEvents: 'none',
-          opacity: fadeInOpacity,
-          transition: 'opacity 150ms linear'
-        }}
-      >
-        <img 
-          src={fadeInImageUrl}
-          alt="Fade-in image"
           crossOrigin="anonymous"
           style={{
             width: '100%',
@@ -338,7 +267,7 @@ function OpenSeadragonDemo() {
             transformStyle: 'preserve-3d',
             transition: 'transform 150ms linear',
             transformOrigin: `${originX}% ${originY}%`,
-            transform: `rotateY(${flipAngle}deg)`
+            transform: `rotateZ(${flipAngle}deg)`
           }}
         >
           <img 
@@ -360,7 +289,7 @@ function OpenSeadragonDemo() {
 
       <header className="App-header">
         {/* <h1>OpenSeadragon + IIIF Fold-Flip Demo</h1> */}
-        <p>Interactive circular flap with 3D flip animation</p>
+        <p>Interactive volvelle with rotation animation</p>
       </header>
 
       <div className="demo-layout">
@@ -382,23 +311,23 @@ function OpenSeadragonDemo() {
           </div>
 
           <div className="flip-controls">
-            <h3>Flip Controls</h3>
+            <h3>Rotation Control</h3>
             <label htmlFor="flip-angle">
-              Angle: {flipAngle}° ({flipAngle === 0 ? 'Closed' : flipAngle === 180 ? 'Open' : 'Partial'})
+              {flipAngle}°
             </label>
             <input 
               id="flip-angle"
               type="range" 
               min="0" 
-              max="180" 
+              max="360" 
               value={flipAngle}
               onChange={(e) => setFlipAngle(Number(e.target.value))}
               step="1"
               aria-label="Rotation angle"
             />
             <div className="flip-ticks">
-              <span>Closed (0°)</span>
-              <span>Open (180°)</span>
+              <span>0°</span>
+              <span>360°</span>
             </div>
 
   

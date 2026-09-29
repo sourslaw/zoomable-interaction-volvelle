@@ -53,7 +53,7 @@ module.exports = (env, argv) => {
       directory: path.join(__dirname, 'public'),
     },
     compress: true,
-    port: 3011,
+    port: 3013,
     hot: true,
     client: {
       overlay: {
