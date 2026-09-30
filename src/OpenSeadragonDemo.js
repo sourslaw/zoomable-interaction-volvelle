@@ -171,7 +171,7 @@ function OpenSeadragonDemo() {
       gestureSettingsMouse: {
         clickToZoom: false
       },
-      defaultZoomLevel: 1,
+      defaultZoomLevel: 0,
       minZoomLevel: 0.5,
       maxZoomLevel: 10,
       visibilityRatio: 0.8,
