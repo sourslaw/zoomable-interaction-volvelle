@@ -155,15 +155,23 @@ function OpenSeadragonDemo() {
     const viewer = OpenSeadragon({
       element: viewerElementRef.current,
       tileSources: {
-        type: 'image',
-        url: '/image.jpg'
+        '@context': 'http://iiif.io/api/image/2/context.json',
+        '@id': 'https://collections.library.yale.edu/iiif/2/1022380',
+        'protocol': 'http://iiif.io/api/image',
+        'width': 2850,
+        'height': 3867,
+        'tiles': [{
+          'width': 512,
+          'height': 512,
+          'scaleFactors': [1, 2, 4, 8, 16, 32]
+        }]
       },
       showNavigator: false,
       showRotationControl: true,
       gestureSettingsMouse: {
         clickToZoom: false
       },
-      defaultZoomLevel: 0,
+      defaultZoomLevel: 1,
       minZoomLevel: 0.5,
       maxZoomLevel: 10,
       visibilityRatio: 0.8,
