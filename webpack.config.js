@@ -4,12 +4,12 @@ const webpack = require('webpack');
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
-  const publicPath = isProduction ? '/zoomable-interaction/' : '/';
+  const publicPath = isProduction ? '/zoomable-interaction-volvelle/' : '/';
   
   return {
   entry: './src/index.js',
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'docs'),
     filename: 'bundle.js',
     publicPath: publicPath,
     clean: true,
