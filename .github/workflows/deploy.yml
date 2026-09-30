@@ -28,6 +28,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
-          cname: sourslaw.github.io
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
